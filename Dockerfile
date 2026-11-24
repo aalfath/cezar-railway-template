@@ -38,7 +38,8 @@ WORKDIR /opt/cezar
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund --loglevel=error \
  && npm cache clean --force \
- && node_modules/.bin/cezar --version \
+ && test "$(node -p 'require("@open-mercato/cezar/package.json").version')" = 0.20.0 \
+ && node_modules/.bin/cezar help >/dev/null \
  && node_modules/.bin/claude --version \
  && node_modules/.bin/codex --version \
  && node_modules/.bin/opencode --version

@@ -87,7 +87,8 @@ if [ -n "${OPENAI_API_KEY:-}" ] && ! as_cezar codex login status >/dev/null 2>&1
 fi
 
 cd "$HOME_DIR"
-log "starting $(cezar --version 2>/dev/null | head -n1) on 127.0.0.1:4321 and the login front on :$PORT"
+cez_ver="$(node -p 'require("/opt/cezar/node_modules/@open-mercato/cezar/package.json").version' 2>/dev/null || echo "?")"
+log "starting Cezar v${cez_ver} on 127.0.0.1:4321 and the login front on :$PORT"
 
 as_cezar cezar serve --no-open --port 4321 &
 cezar_pid=$!

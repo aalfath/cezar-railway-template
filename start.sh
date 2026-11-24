@@ -74,6 +74,15 @@ if [ ! -f "$HOME_DIR/.cezar/config.json" ]; then
   log "first boot: workspace parallel-task cap set to $max_parallel"
 fi
 
+# Cockpit ownership leases from the previous container (old PIDs) make Cezar
+# refuse to start after a restart or redeploy ("Cannot verify foreign owner
+# identity"). Nothing else runs in this container yet, so they are stale;
+# upstream documents removing this folder as safe while no cockpit runs.
+if [ -d "$HOME_DIR/.cezar/runtime" ]; then
+  rm -r "$HOME_DIR/.cezar/runtime"
+  log "cleared stale cockpit leases from the previous container"
+fi
+
 # --- Optional agent keys ------------------------------------------------------
 # Claude Code reads ANTHROPIC_API_KEY itself. Codex keeps its login in
 # ~/.codex/auth.json, so a provided OPENAI_API_KEY is saved there once.

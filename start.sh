@@ -46,10 +46,24 @@ if [ -r /sys/fs/cgroup/memory.max ]; then
   m="$(cat /sys/fs/cgroup/memory.max)"
   [ "$m" = max ] || mem_mb=$(( m / 1048576 ))
 fi
-# One agent run at a time below ~1.5 GB, Cezar's default of 2 above it. A saved
-# Settings -> Resources value is never overwritten.
-if [ "$mem_mb" -gt 0 ] && [ "$mem_mb" -lt 1500 ]; then max_parallel=1; else max_parallel=2; fi
-log "service limits: ${cpus} threads, memory ${mem_mb:-unlimited} MB (0 = no limit)"
+log "service limits: ${cpus} threads, memory ${mem_mb} MB (0 = no limit)"
+
+# Small plans. Each agent session is its own CLI process (Claude Code ~200 MB),
+# and Cezar also starts a second one to name tasks and runs every agent's login
+# check (up to ~300 MB for OpenCode) when a task starts. Below 1.5 GB: one task
+# at a time, finished sessions closed after 1 idle minute, no LLM task naming.
+# Below 1 GB (Railway Free plan): Cezar also skips its login checks and uses
+# each agent's own model setting. Any variable you set yourself wins.
+max_parallel=2 idle_minutes=15
+if [ "$mem_mb" -gt 0 ] && [ "$mem_mb" -lt 1500 ]; then
+  max_parallel=1 idle_minutes=1
+  export CEZ_AUTONAME="${CEZ_AUTONAME:-0}"
+  log "small plan (${mem_mb} MB): one task at a time, LLM task naming off"
+fi
+if [ "$mem_mb" -gt 0 ] && [ "$mem_mb" -lt 1000 ]; then
+  export CEZ_AGENT_MODELS_LOCKED="${CEZ_AGENT_MODELS_LOCKED:-1}"
+  log "under 1 GB: agent login checks off, agents use their own model settings"
+fi
 
 # --- Volume: Railway mounts it root-owned; Cezar runs as UID 1000 -------------
 mkdir -p "$HOME_DIR"
@@ -70,8 +84,8 @@ if [ ! -f "$HOME_DIR/.gitconfig" ]; then
 fi
 # First boot only: seed the workspace config with a parallel cap that fits.
 if [ ! -f "$HOME_DIR/.cezar/config.json" ]; then
-  as_cezar sh -c "umask 077; printf '{\"schemaVersion\":2,\"resources\":{\"maxParallel\":%s}}\n' $max_parallel > '$HOME_DIR/.cezar/config.json'"
-  log "first boot: workspace parallel-task cap set to $max_parallel"
+  as_cezar sh -c "umask 077; printf '{\"schemaVersion\":2,\"resources\":{\"maxParallel\":%s,\"maxMonitoringSessions\":%s,\"idleTimeoutMinutes\":%s}}\n' $max_parallel $(( max_parallel == 1 ? 0 : 2 )) $idle_minutes > '$HOME_DIR/.cezar/config.json'"
+  log "first boot: parallel tasks $max_parallel, idle session timeout $idle_minutes min (Settings -> Resources)"
 fi
 
 # Cockpit ownership leases from the previous container (old PIDs) make Cezar

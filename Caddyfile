@@ -1,0 +1,34 @@
+# Public front for Cezar on Railway. Cezar listens on 127.0.0.1:4321 only.
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		trusted_proxies static 100.64.0.0/10 152.233.0.0/16
+	}
+}
+
+:{$PORT} {
+	# Health check for Railway, no login: answers "ok" when Cezar's own
+	# /api/v1/health answers 2xx, without passing its body on.
+	handle /healthz {
+		reverse_proxy 127.0.0.1:4321 {
+			rewrite /api/v1/health
+			header_up Host 127.0.0.1:4321
+			@ok status 2xx
+			handle_response @ok {
+				respond "ok" 200
+			}
+		}
+	}
+
+	handle {
+		basic_auth {
+			{$CEZAR_USERNAME} {$CEZAR_PASSWORD_HASH}
+		}
+		# Cezar streams run events (SSE) and uses WebSockets: never buffer.
+		reverse_proxy 127.0.0.1:4321 {
+			flush_interval -1
+		}
+	}
+}

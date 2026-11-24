@@ -1,0 +1,12 @@
+{
+  "name": "cezar-railway",
+  "private": true,
+  "version": "0.20.0",
+  "description": "Pinned Cezar server and agent CLIs for the Railway template. Bump versions here and run `npm install --package-lock-only`.",
+  "dependencies": {
+    "@open-mercato/cezar": "0.20.0",
+    "@anthropic-ai/claude-code": "2.1.331",
+    "@openai/codex": "0.172.0",
+    "opencode-ai": "1.19.6"
+  }
+}

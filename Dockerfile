@@ -49,7 +49,8 @@ COPY Caddyfile /etc/cezar/Caddyfile
 COPY start.sh /usr/local/bin/cezar-railway-start
 RUN chmod 0755 /usr/local/bin/cezar-railway-start \
  && caddy version \
- && CEZAR_USERNAME=x CEZAR_PASSWORD_HASH=x PORT=8080 caddy validate --config /etc/cezar/Caddyfile --adapter caddyfile
+ && CEZAR_USERNAME=check CEZAR_PASSWORD_HASH="$(caddy hash-password --plaintext build-time-check-only)" PORT=8080 \
+      caddy validate --config /etc/cezar/Caddyfile --adapter caddyfile
 
 ENV HOME=/home/cezar \
     PATH=/home/cezar/.local/bin:/opt/cezar/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \

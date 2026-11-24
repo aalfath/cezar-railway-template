@@ -96,6 +96,14 @@ if [ -d "$HOME_DIR/.cezar/runtime" ]; then
   rm -r "$HOME_DIR/.cezar/runtime"
   log "cleared stale cockpit leases from the previous container"
 fi
+# Run-index writer tickets left by a container that was killed mid-write carry
+# the old container's hostname, and upstream only reaps those after 5 minutes,
+# so saving runs fails until then. No cezar runs yet, so every ticket is stale.
+find "$HOME_DIR" -maxdepth 8 \( -name node_modules -o -name .git \) -prune -o \
+  -type d -path '*/.ai/cezar/runs/.index-writers' -print 2>/dev/null |
+  while IFS= read -r d; do
+    find "$d" -maxdepth 1 -type f -name '*.ticket*' -delete 2>/dev/null || true
+  done
 
 # --- Optional agent keys ------------------------------------------------------
 # Claude Code reads ANTHROPIC_API_KEY itself. Codex keeps its login in

@@ -65,6 +65,8 @@ as_cezar mkdir -p "$HOME_DIR/.cezar" "$HOME_DIR/.config" "$HOME_DIR/.cache" "$HO
 [ -f "$HOME_DIR/.profile" ] || as_cezar cp /etc/skel/.profile "$HOME_DIR/.profile" 2>/dev/null || true
 if [ ! -f "$HOME_DIR/.gitconfig" ]; then
   as_cezar git config --global init.defaultBranch main
+  as_cezar git config --global user.name "Cezar"
+  as_cezar git config --global user.email "cezar@localhost"
 fi
 # First boot only: seed the workspace config with a parallel cap that fits.
 if [ ! -f "$HOME_DIR/.cezar/config.json" ]; then
@@ -86,7 +88,16 @@ if [ -n "${OPENAI_API_KEY:-}" ] && ! as_cezar codex login status >/dev/null 2>&1
   fi
 fi
 
-cd "$HOME_DIR"
+# Cezar serves the folder it starts in as its first project. Start it in a small
+# git repo ("playground") so a new deployer can run a task straight away; real
+# projects are added from the cockpit (Clone from GitHub or Open local folder).
+PLAYGROUND="$HOME_DIR/cezar/projects/playground"
+if [ ! -d "$PLAYGROUND/.git" ]; then
+  as_cezar mkdir -p "$PLAYGROUND"
+  as_cezar sh -c "cd '$PLAYGROUND' && git init -q -b main && printf '# Playground\\n\\nA scratch repository for trying Cezar. Add your own projects from the cockpit.\\n' > README.md && git add README.md && git -c user.name=Cezar -c user.email=cezar@localhost commit -q -m 'Playground for Cezar'"
+  log "first boot: created the playground project"
+fi
+cd "$PLAYGROUND"
 cez_ver="$(node -p 'require("/opt/cezar/node_modules/@open-mercato/cezar/package.json").version' 2>/dev/null || echo "?")"
 log "starting Cezar v${cez_ver} on 127.0.0.1:4321 and the login front on :$PORT"
 
